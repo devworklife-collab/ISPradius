@@ -85,6 +85,7 @@ jobs:
     name: Deploy to Kubernetes (optional)
     needs: docker
     runs-on: ubuntu-latest
+    # ✅ Correct syntax for secrets in `if`
     if: ${{ secrets.KUBE_CONFIG_DATA != '' }}
 
     steps:
@@ -99,9 +100,8 @@ jobs:
       - name: Configure kubeconfig
         run: |
           echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > kubeconfig
-          export KUBECONFIG=$PWD/kubeconfig
+          echo "KUBECONFIG=$PWD/kubeconfig" >> $GITHUB_ENV
 
       - name: Apply Kubernetes manifests
         run: |
-          export KUBECONFIG=$PWD/kubeconfig
           kubectl apply -f infrastructure/kubernetes/
