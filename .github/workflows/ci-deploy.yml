@@ -31,7 +31,7 @@ jobs:
         run: npm run build
 
   docker:
-    name: Build & push Docker images
+    name: Build & Push Docker Images
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
@@ -43,17 +43,7 @@ jobs:
 
     strategy:
       matrix:
-        service:
-          - name: auth
-            context: backend/services/auth
-          - name: customers
-            context: backend/services/customers
-          - name: billing
-            context: backend/services/billing
-          - name: radius
-            context: backend/services/radius
-          - name: api-gateway
-            context: backend/services/api-gateway
+        service: [auth, customers, billing, radius, api-gateway]
 
     steps:
       - name: Checkout repository
@@ -69,41 +59,39 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push ${{ matrix.service.name }} image
+      - name: Build and push ${{ matrix.service }} image
         uses: docker/build-push-action@v4
         with:
-          context: ${{ matrix.service.context }}
-          file: ${{ matrix.service.context }}/Dockerfile
+          context: backend/services/${{ matrix.service }}
+          file: backend/services/${{ matrix.service }}/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/ispradius-${{ matrix.service.name }}:latest
-            ghcr.io/${{ github.repository_owner }}/ispradius-${{ matrix.service.name }}:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/ispradius-${{ matrix.service }}:latest
+            ghcr.io/${{ github.repository_owner }}/ispradius-${{ matrix.service }}:${{ github.sha }}
           build-args: |
             NODE_ENV=production
 
-      deploy:
-  name: Deploy to Kubernetes (optional)
-  needs: docker
-  runs-on: ubuntu-latest
-  env:
-    KUBE_SECRET_EXISTS: ${{ secrets.KUBE_CONFIG_DATA }}
+  deploy:
+    name: Deploy to Kubernetes (optional)
+    needs: docker
+    runs-on: ubuntu-latest
 
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v3
-      with:
-        version: "latest"
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: "latest"
 
-    - name: Configure kubeconfig
-      if: ${{ env.KUBE_SECRET_EXISTS != '' }}
-      run: |
-        echo "${{ env.KUBE_SECRET_EXISTS }}" | base64 --decode > kubeconfig
-        echo "KUBECONFIG=$PWD/kubeconfig" >> $GITHUB_ENV
+      - name: Configure kubeconfig
+        if: ${{ secrets.KUBE_CONFIG_DATA != '' }}
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > kubeconfig
+          echo "KUBECONFIG=$PWD/kubeconfig" >> $GITHUB_ENV
 
-    - name: Apply Kubernetes manifests
-      if: ${{ env.KUBE_SECRET_EXISTS != '' }}
-      run: |
-        kubectl apply -f infrastructure/kubernetes/
+      - name: Apply Kubernetes manifests
+        if: ${{ secrets.KUBE_CONFIG_DATA != '' }}
+        run: |
+          kubectl apply -f infrastructure/kubernetes/
