@@ -1,0 +1,119 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ispradius
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  auth:
+    build:
+      context: ../../backend/services/auth
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/ispradius
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=change-me
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "4001:4001"
+
+  customers:
+    build:
+      context: ../../backend/services/customers
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/ispradius
+    depends_on:
+      - postgres
+    ports:
+      - "4002:4002"
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  api-gateway:
+    build:
+      context: ../../backend/services/api-gateway
+      dockerfile: Dockerfile
+    environment:
+      - AUTH_URL=http://auth:4001
+      - CUSTOMERS_URL=http://customers:4002
+    depends_on:
+      - auth
+      - customers
+    ports:
+      - "4000:4000"
+
+  billing:
+    build:
+      context: ../../backend/services/billing
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/ispradius
+      - REDIS_URL=redis://redis:6379
+      - BILLING_SCHEDULE=0 2 * * *
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "4003:4003"
+
+  radius:
+    build:
+      context: ../../backend/services/radius
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/ispradius
+      - FREERADIUS_USERS_PATH=/data/freeradius/users
+      - SYNC_CRON=*/5 * * * *
+    depends_on:
+      - postgres
+    volumes:
+      - radius-users:/data/freeradius
+    ports:
+      - "4004:4004"
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ../../frontend:/app
+    command: ["sh", "-c", "npm install && npm run build && npx serve -s dist -l 5173"]
+    ports:
+      - "5173:5173"
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres-data:
+  radius-users:

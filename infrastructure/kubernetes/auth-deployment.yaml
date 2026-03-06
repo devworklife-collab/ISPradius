@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ispradius-auth
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ispradius-auth
+  template:
+    metadata:
+      labels:
+        app: ispradius-auth
+    spec:
+      containers:
+        - name: auth
+          image: ispradius/auth:latest
+          ports:
+            - containerPort: 4001
+          env:
+            - name: DATABASE_URL
+              value: "postgres://postgres:postgres@postgres:5432/ispradius"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ispradius-secrets
+                  key: jwtSecret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ispradius-auth
+spec:
+  selector:
+    app: ispradius-auth
+  ports:
+    - port: 4001
+      targetPort: 4001
+  type: ClusterIP

@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ispradius-radius
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ispradius-radius
+  template:
+    metadata:
+      labels:
+        app: ispradius-radius
+    spec:
+      containers:
+        - name: radius
+          image: ispradius/radius:latest
+          ports:
+            - containerPort: 4004
+          env:
+            - name: DATABASE_URL
+              value: "postgres://postgres:postgres@postgres:5432/ispradius"
+            - name: FREERADIUS_USERS_PATH
+              value: "/data/freeradius/users"
+          volumeMounts:
+            - name: radius-users
+              mountPath: /data/freeradius
+      volumes:
+        - name: radius-users
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ispradius-radius
+spec:
+  selector:
+    app: ispradius-radius
+  ports:
+    - port: 4004
+      targetPort: 4004
+  type: ClusterIP

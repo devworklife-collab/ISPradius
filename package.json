@@ -1,0 +1,20 @@
+{
+  "name": "ispradius",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "backend/*",
+    "backend/libs/*",
+    "frontend/*"
+  ],
+  "scripts": {
+    "bootstrap": "npm install",
+    "lint": "npm run lint --workspaces",
+    "test": "npm test --workspaces",
+    "build": "npm run build --workspaces"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "prettier": "^3.0.0"
+  }
+}

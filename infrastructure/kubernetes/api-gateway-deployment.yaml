@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ispradius-api-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ispradius-api-gateway
+  template:
+    metadata:
+      labels:
+        app: ispradius-api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: ispradius/api-gateway:latest
+          ports:
+            - containerPort: 4000
+          env:
+            - name: AUTH_URL
+              value: "http://ispradius-auth:4001"
+            - name: CUSTOMERS_URL
+              value: "http://ispradius-customers:4002"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ispradius-api-gateway
+spec:
+  selector:
+    app: ispradius-api-gateway
+  ports:
+    - port: 4000
+      targetPort: 4000
+  type: ClusterIP

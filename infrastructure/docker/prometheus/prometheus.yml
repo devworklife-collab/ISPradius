@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "auth-service"
+    static_configs:
+      - targets: ["auth:4001"]
+
+  - job_name: "customers-service"
+    static_configs:
+      - targets: ["customers:4002"]
+
+  - job_name: "billing-service"
+    static_configs:
+      - targets: ["billing:4003"]
+
+  - job_name: "auth-service"
+    static_configs:
+      - targets: ["auth:4001"]
+
+  - job_name: "radius-service"
+    static_configs:
+      - targets: ["radius:4004"]
