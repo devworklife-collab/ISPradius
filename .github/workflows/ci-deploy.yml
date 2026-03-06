@@ -81,10 +81,12 @@ jobs:
           build-args: |
             NODE_ENV=production
 
-deploy:
+      deploy:
   name: Deploy to Kubernetes (optional)
   needs: docker
   runs-on: ubuntu-latest
+  env:
+    KUBE_SECRET_EXISTS: ${{ secrets.KUBE_CONFIG_DATA }}
 
   steps:
     - name: Checkout repository
@@ -96,12 +98,12 @@ deploy:
         version: "latest"
 
     - name: Configure kubeconfig
-      if: ${{ secrets.KUBE_CONFIG_DATA != '' }}
+      if: ${{ env.KUBE_SECRET_EXISTS != '' }}
       run: |
-        echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > kubeconfig
+        echo "${{ env.KUBE_SECRET_EXISTS }}" | base64 --decode > kubeconfig
         echo "KUBECONFIG=$PWD/kubeconfig" >> $GITHUB_ENV
 
     - name: Apply Kubernetes manifests
-      if: ${{ secrets.KUBE_CONFIG_DATA != '' }}
+      if: ${{ env.KUBE_SECRET_EXISTS != '' }}
       run: |
         kubectl apply -f infrastructure/kubernetes/
