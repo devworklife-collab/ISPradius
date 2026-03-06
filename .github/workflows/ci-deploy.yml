@@ -81,27 +81,27 @@ jobs:
           build-args: |
             NODE_ENV=production
 
-  deploy:
-    name: Deploy to Kubernetes (optional)
-    needs: docker
-    runs-on: ubuntu-latest
-    # ✅ Correct syntax for secrets in `if`
-    if: ${{ secrets.KUBE_CONFIG_DATA != '' }}
+deploy:
+  name: Deploy to Kubernetes (optional)
+  needs: docker
+  runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: "latest"
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: "latest"
 
-      - name: Configure kubeconfig
-        run: |
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > kubeconfig
-          echo "KUBECONFIG=$PWD/kubeconfig" >> $GITHUB_ENV
+    - name: Configure kubeconfig
+      if: ${{ secrets.KUBE_CONFIG_DATA != '' }}
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > kubeconfig
+        echo "KUBECONFIG=$PWD/kubeconfig" >> $GITHUB_ENV
 
-      - name: Apply Kubernetes manifests
-        run: |
-          kubectl apply -f infrastructure/kubernetes/
+    - name: Apply Kubernetes manifests
+      if: ${{ secrets.KUBE_CONFIG_DATA != '' }}
+      run: |
+        kubectl apply -f infrastructure/kubernetes/
